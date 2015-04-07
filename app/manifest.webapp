@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "name": "Web Starter Kit",
+  "name": "Graphical Swim",
   "launch_path": "/index.html",
-  "description": "A front-end template that helps you build fast, modern mobile web apps.",
+  "description": "Graphical Swim Statistics.",
   "icons": {
     "128": "/images/touch/icon-128x128.png"
   },
   "developer": {
-    "name": "",
-    "url": ""
+    "name": "Raul Garcia Alcaraz",
+    "url": "raugaral.me"
   },
   "installs_allowed_from": [
     "*"
@@ -18,8 +18,8 @@
   },
   "locales": {
     "en": {
-      "name": "Web Starter Kit",
-      "description": "A front-end template that helps you build fast, modern mobile web apps."
+      "name": "Graphical Swim",
+      "description": "Graphical Swim Statistics."
     }
   }
 }

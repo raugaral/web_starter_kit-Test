@@ -1,4 +1,4 @@
-# Contributing
+# Contributing 
 
 *[Website](https://developers.google.com/web/starter-kit/) related issues should be filed on the [Web Fundamentals](https://github.com/google/WebFundamentals/issues/new) issue tracker.*
 

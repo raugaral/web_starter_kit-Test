@@ -1,5 +1,4 @@
-<!doctype html>
-<html lang="">
+<html>
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -31,48 +30,190 @@
     <link rel="stylesheet" href="styles/components/components.css">
     <link rel="stylesheet" href="styles/main.css">
     <!-- endbuild -->
-  </head>
-  <body>
-    <header class="app-bar promote-layer">
-      <div class="app-bar-container">
-        <button class="menu"><img src="images/hamburger.svg" alt="Menu"></button>
-        <h1 class="logo">Web Starter Kit</h1>
-        <section class="app-bar-actions">
-        <!-- Put App Bar Buttons Here -->
-        </section>
-      </div>
-    </header>
 
-    <nav class="navdrawer-container promote-layer">
-      <h4>Navigation</h4>
-      <ul>
-        <li><a href="#hello">Hello</a></li>
-        <li><a href="#get-started">Get Started</a></li>
-        <li><a href="styleguide/index.html">Style Guide</a></li>
-      </ul>
-    </nav>
+    <!--Load the AJAX API-->
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <script type="text/javascript">
 
-    <main>
-      <h1 id="hello">Hello!</h1>
-      <p>Welcome to Web Starter Kit.</p>
+    // Load the Visualization API and the piechart package.
+    google.load('visualization', '1', {'packages':['corechart']});
 
-      <h2 id="get-started">Get Started.</h2>
-      <p>Read how to <a href="http://developers.google.com/web/starter-kit">Get Started</a> or check out the <a href="styleguide/index.html">Style Guide</a>.</p>
-    </main>
+    // Set a callback to run when the Google Visualization API is loaded.
+    //google.setOnLoadCallback(drawChart);
 
-    <!-- build:js scripts/main.min.js -->
-    <script src="scripts/main.js"></script>
-    <!-- endbuild -->
+    function drawChart() {
+      $("body")[0].setAttribute("style","cursor: wait;");
 
-    <!-- Google Analytics: change UA-XXXXX-X to be your site's ID -->
-    <script>
-      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-      ga('create', 'UA-XXXXX-X', 'auto');
-      ga('send', 'pageview');
+      var response = $.ajax({
+          url: "http://raugaral.me/graim/inicio.php",
+          dataType:"json",
+          async: false,
+          data: "l="+$("#licencia").val()+"&p="+$("#piscina").val()+"&e="+$("#prueba").val()
+          })
+       .done(function (data){$("#out").html("");})
+       .fail(function(jqXHR, textStatus, errorThrown) {
+          if(jqXHR.status != 200)
+       	    $("#out").html("ERROR!"+textStatus+": "+errorThrown+"<br>");
+      	$("body")[0].removeAttribute("style");
+       });
+
+      //var jsonData = JSON.parse(response.responseText);
+
+      var jsonData = cleanData(response.responseText);
+      if (jsonData == null) {
+        $("#out").html("ERROR! Nadador no encontrado o prueba no nadada!<br>");
+        return null;
+      }
+      $("#out").html("");
+
+      ticks = getMaxMin(jsonData);
+      var options = {
+          title: 'Tiempos de '+getName(response.responseText)+" en "+$("#prueba").val().substr(0,($("#prueba").val().length-2)),
+          vAxis: {
+            ticks: ticks
+          },
+          legend: 'none',
+          animation: {
+            duration : 1000,
+            easing: 'out'
+          }
+        };
+
+      var data = new google.visualization.DataTable();
+
+      data.addColumn('string', 'Fecha');
+      data.addColumn('number', 'Tiempo');
+      data.addColumn({type: 'string', role: 'tooltip'});
+
+      data.addRows(jsonData);
+
+      // Instantiate and draw our chart, passing in some options.
+      var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+      chart.draw(data, options);
+
+      $("body")[0].removeAttribute("style");
+    }
+
+
+    function cleanData (htmlData) {
+      html = $(htmlData);
+      tableTiempos = html.find(".noticia_principal>table").last();
+      tiemposTr = tableTiempos.find("tr").filter(":gt(3)");
+      tiempos = new Array();
+
+      if (tiemposTr.length <= 1) return null;
+
+      for (var i = 0; i < tiemposTr.length; i++) {
+        tiempos.push(new Array());
+        tiempos[i][0] = $(tiemposTr[i]).find("td:eq(4)").text().trim();
+        tiempos[i][1] = parseNumber( $(tiemposTr[i]).find("td:eq(2)").text().trim() );
+        tiempos[i][2] = $(tiemposTr[i]).find("td:eq(2)").text().trim();
+      }
+
+      tiempos = tiempos.sort(function(a,b){
+        fechaA = a[0].split("/");
+        fechaAEng = fechaA[1]+"/"+fechaA[0]+"/"+fechaA[2];
+        fechaB = b[0].split("/");
+        fechaBEng = fechaB[1]+"/"+fechaB[0]+"/"+fechaB[2];
+        return new Date(fechaAEng) - new Date(fechaBEng);
+      });
+
+      //console.log(tiempos);
+      return tiempos;
+    }
+
+    function getName (htmlData) {
+      html = $(htmlData);
+      nombre = html.find(".noticia_principal h2");
+      return nombre.text();
+    }
+
+    function getMaxMin (tiempos) {
+      var max = tiempos[0];
+      var min = tiempos[0];
+
+      for (var i = 1; i < tiempos.length; i++) {
+        if( tiempos[i][1] > max[1])
+          max = tiempos[i];
+        if (tiempos[i][1] < min[1])
+          min = tiempos[i];
+      }
+
+      var avgNum = (min[1] + max[1])/2;
+      var minutes = Math.floor(avgNum/60);
+      var seconds = (avgNum-(minutes*60)).toFixed(2);
+      if(seconds < 10) seconds = "0"+seconds;
+      var avgText = minutes+":"+seconds;
+
+      ticks = [{v: min[1], f: min[2]}];
+      ticks.push({v: avgNum, f: avgText});
+      ticks.push({v: max[1], f: max[2]});
+
+      return ticks;
+    }
+
+    function parseNumber (stringTiempo) {
+      string = stringTiempo.replace(".",":").split(":");
+      if( string.length == 2 )
+        string = Number.parseInt(string[0]) + Number.parseFloat(string[1]*0.01);
+      else if (string.length == 3) {
+        string = Number.parseInt(string[0]*60) + Number.parseInt(string[1]) + Number.parseFloat(string[2]*0.01);
+      }
+      return string;
+    }
+
     </script>
-    <!-- Built with love using Web Starter Kit -->
+  </head>
+
+  <body>
+    <main>
+      <div id="container" class="content">
+        <div id="head">
+          Num. Licencia: <input type="text" id="licencia">
+          Piscina:
+          <select id="piscina">
+            <option value="0">25 m.</option>
+            <option value="1">50 m.</option>
+          </select>
+          Prueba:
+          <select id="prueba">
+            <option value="50L-I">50 m. L</option>
+            <option value="100L-I">100 m. L</option>
+            <option value="200L-I">200 m. L</option>
+            <option value="400L-I">400 m. L</option>
+            <option value="800L-I">800 m. L</option>
+            <option value="1500L-I">1500 m. L</option>
+            <option value="50M-I">50 m. M</option>
+            <option value="100M-I">100 m. M</option>
+            <option value="200M-I">200 m. M</option>
+            <option value="50E-I">50 m. E</option>
+            <option value="100E-I">100 m. E</option>
+            <option value="200E-I">200 m. E</option>
+            <option value="50B-I">50 m. B</option>
+            <option value="100B-I">100 m. B</option>
+            <option value="200B-I">200 m. B</option>
+            <option value="100S-I">100 m. S</option>
+            <option value="200S-I">200 m. S</option>
+            <option value="400S-I">400 m. S</option>
+            <option value="4X50S-R">4x50 S</option>
+            <option value="4X100S-R">4x100 S</option>
+            <option value="4X50L-R">4x50 L</option>
+            <option value="4X100L-R">4x100 L</option>
+            <option value="4X200L-R">4x200 L</option>
+            <option value="">Todas</option>
+          </select>
+          <button onclick="drawChart()">Mostrar</button>
+        </div>
+        <div id="center">
+          <!--Div that will hold the pie chart-->
+          <div id="chart_div"></div>
+          <div id="out"></div>
+        </div>
+        <div id="footer">
+
+        </div>
+      </div>
+    </main>
   </body>
 </html>
